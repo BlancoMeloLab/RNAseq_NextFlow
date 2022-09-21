@@ -30,14 +30,22 @@ To see a full list of options and pipeline version, enter:
 
 ***IMPORTANT: For individual users, we highly recommend installing all python packages in a virtual environment***
 
-This pipeline requires a number of optional python packages for qc and analysis. To install RSeQC and MultiQC, you can run the following:
+This pipeline requires a number of optional python packages for qc and analysis. These packages are already installed within a shared directory. You can configure the environment by running the following commands:
 
 ```
-$ pip3 install MultiQC --user
-$ pip3 install RSeQC --user
+WD=/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline
+module load Python/3.8.2-GCCcore-9.3.0 nextflow
+alias java=${WD}/opt/jdk-18.0.2.1/bin/java
+export PATH=${WD}/opt/jdk-18.0.2.1/bin:$PATH
+export JAVA_HOME=${WD}/opt/jdk-18.0.2.1/
+export EBROOTJAVA=${WD}/opt/jdk-18.0.2.1/
+export PATH=$PATH:${WD}/opt/STAR-2.7.10a/bin/Linux_x86_64_static
+for d in $WD/opt; do export PATH="$PATH:$d"; done
+for d in $WD/opt/*; do export PATH="$PATH:$d"; done
+for d in $WD/opt/*/bin; do export PATH="$PATH:$d"; done
+for d in $WD/opt/python_packages/*/bin; do export PATH="$PATH:$d"; done
+for d in ${WD}/opt/python_packages/*; do export PYTHONPATH="$PYTHONPATH:$d"; done
 ```
-
-Note that all packages are Python3.
 
 ##### Running Nextflow Using an sbatch script
 
