@@ -1,17 +1,7 @@
-# Nextflow Implementation of the Dowell Lab Steady State (RNA-seq) Pipeline
+# Nextflow Implementation of the Blanco-Melo Lab Steady State (RNA-seq) Pipeline
 
 ### Usage
 
-#### Download and Installation
-
-Clone this repository in your home directory:
-
-    $ git clone git@github.com:Dowell-Lab/RNAseq-Flow.git
-
-Install Nextflow:
-
-    $ curl -s https://get.nextflow.io | bash
-    
 #### Slurm-Specific Usage Requirements
 ##### Primary Run Settings
 
@@ -106,5 +96,5 @@ The best way to run Nextflow is using an sbatch script using the same command sp
 
 ### Credits
 
-* Margaret Gruca ([@magruca](https://github.com/magruca)): Nextflow pipeline optimization, original pipeline design and optimization
+* Qing Yang <qyang@fredhutch.org>
 
