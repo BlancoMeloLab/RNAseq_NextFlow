@@ -81,7 +81,7 @@ def helpMessage() {
         --skipRSeQC                    Skip running RSeQC.
 
     Analysis Options:
-        --count                        Run featureCount over RefSeq annotated genes.
+        --count                        Run featureCounts over RefSeq annotated genes.
 
     """.stripIndent()
 }
@@ -604,10 +604,10 @@ process samtools {
 }
 
 sorted_bam_ch
-   .into {sorted_bams_for_bedtools_bedgraph; sorted_bams_for_rseqc; sorted_bams_for_dreg_prep; sorted_bams_for_pileup; sorted_bams_for_featurecount}
+   .into {sorted_bams_for_bedtools_bedgraph; sorted_bams_for_rseqc; sorted_bams_for_dreg_prep; sorted_bams_for_pileup; sorted_bams_for_featureCounts}
 
 sorted_bam_indices_ch
-    .into {sorted_bam_indices_for_bedtools_bedgraph; sorted_bam_indices_for_bedtools_normalized_bedgraph; sorted_bam_indicies_for_pileup; sorted_bam_indices_for_rseqc; sorted_bam_indices_for_featurecount}
+    .into {sorted_bam_indices_for_bedtools_bedgraph; sorted_bam_indices_for_bedtools_normalized_bedgraph; sorted_bam_indicies_for_pileup; sorted_bam_indices_for_rseqc; sorted_bam_indices_for_featureCounts}
 
 
 /*
@@ -675,7 +675,7 @@ process rseqc_qc {
     """
  }
 
-process featureCount {
+process featureCounts {
     errorStrategy { task.exitStatus=0 ? 'ignore' : 'terminate' }
     tag "$name"
     time '8h'
@@ -686,15 +686,15 @@ process featureCount {
     params.count
 
     input:
-    set val(name), file(bam_file) from sorted_bams_for_featurecount
-    file(bam_indices) from sorted_bam_indices_for_featurecount
+    set val(name), file(bam_file) from sorted_bams_for_featureCounts
+    file(bam_indices) from sorted_bam_indices_for_featureCounts
 
     output:
     file "*.counts.*" into counts
 
     script:
     """
-    featureCount ${bam_file} \
+    featureCounts ${bam_file} \
                            -o ${name}.counts \
                            -a ${annotation_gtf} \
                            -t exon \
