@@ -43,6 +43,23 @@ Note that all packages are Python3.
 
 The best way to run Nextflow is using an sbatch script using the same command specified above. It's advisable to execute the workflow at least in a `screen` session, so you can log out of your cluster and check the progress and any errors in standard output more easily. Nextflow does a great job at keeping logs of every transaction, anyway, should you lose access to the console. The memory requirements do not exceed 8GB, so you do not need to request more RAM than this. SRAs must be downloaded prior to running the pipeline.
 
+Example commands to be used on Fred Hutch Rhino node are listed below. 
+```
+# To download and analyze SE RNAseq
+SRR=SRR19572981
+sbatch  -N 1 -n 1 -c 16 \
+        --job-name="nextflow_se" \
+        --error=./%x_%j.err --output=./%x_%j.out \
+        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --singleEnd --count"
+
+# To download and analyze PE RNAseq
+SRR=SRR19795679
+sbatch  -N 1 -n 1 -c 16 \
+        --job-name="nextflow_pe" \
+        --error=./%x_%j.err --output=./%x_%j.out \
+        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --count"
+```
+
 ## Arguments
 
 **Required Arguments**
