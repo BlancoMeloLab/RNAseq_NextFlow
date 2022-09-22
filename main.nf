@@ -680,7 +680,7 @@ process featureCounts {
     tag "$name"
     time '8h'
     memory '40 GB'
-    publishDir "${params.outdir}/counts" , mode: 'copy', pattern: "*.counts.*"
+    publishDir "${params.outdir}/counts" , mode: 'copy', pattern: "*.counts*"
 
     when:
     params.count
@@ -690,9 +690,21 @@ process featureCounts {
     file(bam_indices) from sorted_bam_indices_for_featureCounts
 
     output:
-    file "*.counts.*" into counts
+    file "*.counts*" into counts
 
     script:
+    if (!params.singleEnd) {
+    """
+    featureCounts ${bam_file} \
+                           -o ${name}.counts \
+                           -a ${annotation_gtf} \
+                           -t exon \
+                           -g gene_id \
+                           -M \
+                           -p \
+                           -s 0
+    """
+    } else {
     """
     featureCounts ${bam_file} \
                            -o ${name}.counts \
@@ -702,6 +714,7 @@ process featureCounts {
                            -M \
                            -s 0
     """
+    }
  }
 
 
