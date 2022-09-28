@@ -2,35 +2,16 @@
 
 ### Usage
 
-#### Slurm-Specific Usage Requirements
+#### Rhino-Specific Usage Requirements
 ##### Primary Run Settings
 
-If you are using Linux, this will install nextflow to your home directory. As such, to run Nextflow, you will need add your user home directory to your PATH. Use the following command to set your home directory to your PATH as a variable so you can still access other paths on your cluster without conflict:
+This version of RNA-seq nextflow is implemented for Fred Hutch Scientific Computing server Rhino. The environment is configured on the `scratch` directory, under `/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline`. This is where you would find all the dependencies and the nextflow pipeline configurations. Please do not edit files in this directory unless you know what you are doing.
 
-    $export PATH=~:$PATH
+To run the nextflow pipeline to fit your specific need, you might want to create a unique config file. You should adjust the config files based on the default `conf/rhino_grch38.config`, to ensure the proper paths are set for genome reference files and other executables. Variable names should hopefully be self-explanatory. It's generally a good idea to keep separate configuration files for samples using different reference genomes, and different organisms.
 
-Secondly, edit the appropriate config file, e.g. `conf/slurm_grch38.config`, to ensure the proper paths are set for genome reference files and other executables (look for all mentions of `COMPLETE_*`). Variable names should hopefully be self-explanatory. An example run with the required arguments is as follows:
+##### Setting up the environment
 
-```
-    $ nextflow run main.nf -profile slurm_grch38 --workdir '</nextflow/work/temp/>'  --outdir '</my/project/>' --email <john.doe@themailplace.com> --sras '</dir/to/sras/*>'
-    
-```
-
-Directory paths for sras/fastqs must be enclosed in quotes. Notice the name of the configuration file. It's generally a good idea to keep separate configuration files for samples using different reference genomes, and different organisms. The pipeline runs ***paired-end by default***. The --singleEnd flag must be added for all single-end data. While most nascent data is single-end, Groovy configurations make paired-end processing an easier default.
-
-If anything went wrong, you don't need to restart the pipeline from scratch. Instead...
-
-    $ nextflow run main.nf -profile slurm_grch38 -resume
-    
-To see a full list of options and pipeline version, enter:
-    
-    $ nextflow run main.nf -profile slurm_grch38 --help
-
-##### Python Package Requirements
-
-***IMPORTANT: For individual users, we highly recommend installing all python packages in a virtual environment***
-
-This pipeline requires a number of optional python packages for qc and analysis. These packages are already installed within a shared directory. You can configure the environment by running the following commands:
+This pipeline requires a number of packages, which are already installed within a shared directory `/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline`. You can configure the environment by running the following commands:
 
 ```
 WD=/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline
@@ -49,26 +30,53 @@ for d in ${WD}/opt/python_packages/*; do export PYTHONPATH="$PYTHONPATH:$d"; don
 
 ##### Running Nextflow Using an sbatch script
 
-The best way to run Nextflow is using an sbatch script using the same command specified above. It's advisable to execute the workflow at least in a `screen` session, so you can log out of your cluster and check the progress and any errors in standard output more easily. Nextflow does a great job at keeping logs of every transaction, anyway, should you lose access to the console. The memory requirements do not exceed 8GB, so you do not need to request more RAM than this. SRAs must be downloaded prior to running the pipeline.
-
-Example commands to be used on Fred Hutch Rhino node are listed below. 
+Now with everything set up, you are ready to run Nextflow. The basic command for running the pipeline requires the pipeline file `main.nf`, the profile file (e.g. `rhino_hg38`) and your sequencing reads, in either the compressed fastq format (`fastq.gz`) or as a SRA accession number (SRR12345). To see a full list of options and pipeline version, enter:
 ```
-# To download and analyze SE RNAseq
+nextflow run main.nf -profile slurm_grch38 --help
+```
+
+The best way to run Nextflow is using an sbatch command to submit the whole pipeline as a separate computing job with allocated node, CPUs and memory. Nextflow does a great job at keeping logs of every transaction, anyway, should you lose access to the console. The memory requirements do not exceed 8GB, so you do not need to request more RAM than this. Also 1 node with 16 CPUs will be more than sufficient to process the sequencing data. **Important: Nextflow put all of its intermediate files and output into your current directory, so create a working directory and call the nextflow pipeline from that directory.**
+
+Example commands to be used on Fred Hutch Rhino node are listed below.
+```
+# To download and analyze single end RNAseq
 SRR=SRR19572981
 sbatch  -N 1 -n 1 -c 16 \
         --job-name="nextflow_se" \
         --error=./%x_%j.err --output=./%x_%j.out \
-        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --singleEnd --count"
+        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --singleEnd --salmon --count"
 
-# To download and analyze PE RNAseq
+# To download and analyze paired end RNAseq
 SRR=SRR19795679
 sbatch  -N 1 -n 1 -c 16 \
         --job-name="nextflow_pe" \
         --error=./%x_%j.err --output=./%x_%j.out \
-        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --count"
+        --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $SRR --salmon --count"
 ```
 
-## Arguments
+In addition, the following command can be used to process a list of SRA accession number in parallel. Simple provide the accession numbers, each number as a new line, in a text file (`srr.txt`). And run the following bash scripts:
+
+```
+SRR_FILE=srr.txt
+for line in $(cat ${SRR_FILE}); do
+  mkdir ${line}; cd ${line}
+  if [ $(fastq-dump -X 1 -Z --split-spot $line | wc -l) -eq 4 ]
+  then
+    sbatch  -N 1 -n 1 -c 16 \
+            --job-name="nextflow_rnaseq_${line}" \
+            --error=./%x_%j.err --output=./%x_%j.out \
+            --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $line --singleEnd --salmon --count"
+  else
+    sbatch  -N 1 -n 1 -c 16 \
+            --job-name="nextflow_rnaseq_${line}" \
+            --error=./%x_%j.err --output=./%x_%j.out \
+            --wrap="nextflow ${WD}/RNAseq_NextFlow/main.nf -profile rhino_hg38 --sras $line --salmon --count"
+  fi
+  cd ..
+done
+```
+
+## Additional arguments for customization
 
 **Required Arguments**
 
@@ -100,12 +108,6 @@ sbatch  -N 1 -n 1 -c 16 \
 | --flip       |             | Reverse complements each strand. Necessary for some library preps.           |
 | --flipR2     |             | Reverse complements R2 only (will not work in singleEnd mode).               |
 
-**Performance Options**
-
-| Arguments       | Usage       | Description                                             |
-|-----------------|-------------|---------------------------------------------------------|
-| --threadfqdump  |             | Runs multi-threading for fastq-dump for sra processing. |
-
 **QC Options**
 
 | Arguments       | Usage       | Description                                             |
@@ -117,9 +119,9 @@ sbatch  -N 1 -n 1 -c 16 \
 
 | Arguments       | Usage       | Description                                                                         |
 |-----------------|-------------|-------------------------------------------------------------------------------------|
-| --count       |               | Count reads (FPKM normalized) over RefSeq gene file. ***Should not be used as stand-alone analysis! Only to be used as a quick first pass.*** |
+| --count       |               | Count aligned reads over RefSeq gene file using FeatureCounts |
+| --salmon       |               | Count trimmed reads over transcriptome using salmon |
 
-### Credits
+### Author
 
 * Qing Yang <qyang@fredhutch.org>
-

@@ -37,7 +37,7 @@ Pipeline steps:
 
     8. IGV Tools : bedGraph --> tdf
 
-    9. RSeQC Counts : Read counts for a provided RefSeq annotation file
+    9. featureCounts : Read counts for a provided RefSeq annotation file
 
     10. MultiQC : generate QC report for pipeline
 
@@ -82,6 +82,8 @@ def helpMessage() {
 
     Analysis Options:
         --count                        Run featureCounts over RefSeq annotated genes.
+        --salmon                       Run Salmon to count fastq reads directly against transcriptome.
+
 
     """.stripIndent()
 }
@@ -124,6 +126,10 @@ if ( params.chrom_sizes ){
 
 if ( params.star_indices ){
     star_indices = file("${params.star_indices}")
+}
+
+if ( params.salmon_indices ){
+    salmon_indices = file("${params.salmon_indices}")
 }
 
 if ( params.genome_refseq ){
@@ -208,6 +214,7 @@ summary['Reverse Comp']     = params.flip ? 'YES' : 'NO'
 summary['Reverse Comp R2']  = params.flipR2 ? 'YES' : 'NO'
 summary['Run RSeQC']        = params.skipRSeQC ? 'NO' : 'YES'
 summary['Run Count']        = params.count ? 'NO' : 'YES'
+summary['Run Salmon']       = params.salmon ? 'NO' : 'YES'
 summary['Run MultiQC']      = params.skipMultiQC ? 'NO' : 'YES'
 summary['Max Memory']       = params.max_memory
 summary['Max CPUs']         = params.max_cpus
@@ -350,7 +357,7 @@ process bbduk {
     set val(name), file(reads) from fastq_reads_trim.mix(fastq_reads_trim_sra)
 
     output:
-    set val(name), file ("*.trim.fastq.gz") into trimmed_reads_fastqc, trimmed_reads_star
+    set val(name), file ("*.trim.fastq.gz") into trimmed_reads_fastqc, trimmed_reads_star, trimmed_reads_salmon
     file "*.txt" into trim_stats
 
     script:
@@ -675,49 +682,6 @@ process rseqc_qc {
     """
  }
 
-process featureCounts {
-    errorStrategy { task.exitStatus=0 ? 'ignore' : 'terminate' }
-    tag "$name"
-    time '8h'
-    memory '40 GB'
-    publishDir "${params.outdir}/counts" , mode: 'copy', pattern: "*.counts*"
-
-    when:
-    params.count
-
-    input:
-    set val(name), file(bam_file) from sorted_bams_for_featureCounts
-    file(bam_indices) from sorted_bam_indices_for_featureCounts
-
-    output:
-    file "*.counts*" into counts
-
-    script:
-    if (!params.singleEnd) {
-    """
-    featureCounts ${bam_file} \
-                           -o ${name}.counts \
-                           -a ${annotation_gtf} \
-                           -t exon \
-                           -g gene_id \
-                           -M \
-                           -p \
-                           -s 0
-    """
-    } else {
-    """
-    featureCounts ${bam_file} \
-                           -o ${name}.counts \
-                           -a ${annotation_gtf} \
-                           -t exon \
-                           -g gene_id \
-                           -M \
-                           -s 0
-    """
-    }
- }
-
-
 
 /*
  *STEP 5b - Analyze coverage using pileup.sh
@@ -744,6 +708,98 @@ process pileup {
               hist=${name}.coverage.hist.txt
     """
  }
+
+ /*
+  *STEP 5c - Count reads mapped to genome using refseq annotation and featureCounts
+  */
+
+ process featureCounts {
+      errorStrategy { task.exitStatus=0 ? 'ignore' : 'terminate' }
+      tag "$name"
+      time '8h'
+      memory '40 GB'
+      publishDir "${params.outdir}/counts" , mode: 'copy', pattern: "*.counts*"
+
+      when:
+      params.count
+
+      input:
+      set val(name), file(bam_file) from sorted_bams_for_featureCounts
+      file(bam_indices) from sorted_bam_indices_for_featureCounts
+
+      output:
+      file "*.counts*" into counts
+
+      script:
+      if (!params.singleEnd) {
+      """
+      featureCounts ${bam_file} \
+                             -o ${name}.counts \
+                             -a ${annotation_gtf} \
+                             -t exon \
+                             -g gene_id \
+                             -M \
+                             -p \
+                             -s 0
+      """
+      } else {
+      """
+      featureCounts ${bam_file} \
+                             -o ${name}.counts \
+                             -a ${annotation_gtf} \
+                             -t exon \
+                             -g gene_id \
+                             -M \
+                             -s 0
+      """
+      }
+   }
+
+/*
+ *STEP 5d - Count trimmed raw reads directly against transcriptome
+ */
+
+process salmon {
+     errorStrategy { task.exitStatus=0 ? 'ignore' : 'terminate' }
+     tag "$name"
+     time '4h'
+     memory '10 GB'
+     publishDir "${params.outdir}/salmon" , mode: 'copy', pattern: "${name}_quant*"
+
+     when:
+     params.salmon
+
+     input:
+     set val(name), file(trimmed_reads) from trimmed_reads_salmon
+     file(indices) from salmon_indices
+     val(indices_path) from salmon_indices
+
+     output:
+     file "${name}_quant*" into salmon
+
+     script:
+     if (!params.singleEnd) {
+     """
+     salmon quant -i ${indices_path} -l A \
+         -1 ${name}_R1.trim.fastq.gz \
+         -2 ${name}_R2.trim.fastq.gz \
+         -p 16 --validateMappings -o ${name}_quant
+
+     """
+     } else {
+     """
+     salmon quant -i ${indices_path} -l A \
+         -r ${trimmed_reads} \
+         -p 16 --validateMappings -o ${name}_quant
+
+     """
+     }
+  }
+
+
+
+
+
 
 /*
  *STEP 6a - Create non-normalzied bedGraphs
@@ -884,8 +940,6 @@ process igvtools {
     igvtools toTDF ${normalized_bg} ${name}.rcc.tdf ${chrom_sizes}
     """
  }
-
-
 
 /*
  * STEP 9 - MultiQC
