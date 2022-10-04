@@ -380,7 +380,7 @@ process bbduk {
                 out=${name}_R1.flip.trim.fastq.gz \
                 out2=${name}_R2.flip.trim.fastq.gz \
                 ref=${bbmap_adapters} \
-                ktrim=r qtrim=10 k=23 mink=11 hdist=1 \
+                ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                 nullifybrokenquality=t \
                 maq=10 minlen=25 \
                 tpe tbo \
@@ -407,7 +407,7 @@ process bbduk {
                 out=${name}_R1.flip.trim.fastq.gz \
                 out2=${name}_R2.flip.trim.fastq.gz \
                 ref=${bbmap_adapters} \
-                ktrim=r qtrim=10 k=23 mink=11 hdist=1 \
+                ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                 nullifybrokenquality=t \
                 maq=10 minlen=25 \
                 tpe tbo \
@@ -432,7 +432,7 @@ process bbduk {
                   in=${name}.flip.fastq.gz \
                   out=${name}.flip.trim.fastq.gz \
                   ref=${bbmap_adapters} \
-                  ktrim=r qtrim=10 k=23 mink=11 hdist=1 \
+                  ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                   nullifybrokenquality=t \
                   maq=10 minlen=25 \
                   tpe tbo \
@@ -452,11 +452,6 @@ process bbduk {
                   out=${name}_R1.trim.fastq.gz \
                   out2=${name}_R2.trim.fastq.gz \
                   ref=${bbmap_adapters} \
-                  ktrim=r qtrim=10 k=23 mink=11 hdist=1 \
-                  nullifybrokenquality=t \
-                  maq=10 minlen=25 \
-                  tpe tbo \
-                  literal=AAAAAAAAAAAAAAAAAAAAAAA \
                   stats=${name}.trimstats.txt \
                   refstats=${name}.refstats.txt
         """
@@ -469,11 +464,6 @@ process bbduk {
                   in=${name}.fastq.gz \
                   out=${name}.trim.fastq.gz \
                   ref=${bbmap_adapters} \
-                  ktrim=r qtrim=10 k=23 mink=11 hdist=1 \
-                  nullifybrokenquality=t \
-                  maq=10 minlen=25 \
-                  tpe tbo \
-                  literal=AAAAAAAAAAAAAAAAAAAAAAA \
                   stats=${name}.trimstats.txt \
                   refstats=${name}.refstats.txt
         """
