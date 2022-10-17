@@ -728,7 +728,7 @@ process pileup {
                              -a ${annotation_gtf} \
                              -t exon \
                              -g gene_id \
-                             -M \
+                             -M -O \
                              -p \
                              -s 0
       """
@@ -739,7 +739,7 @@ process pileup {
                              -a ${annotation_gtf} \
                              -t exon \
                              -g gene_id \
-                             -M \
+                             -M -O \
                              -s 0
       """
       }
