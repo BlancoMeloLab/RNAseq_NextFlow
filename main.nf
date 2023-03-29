@@ -26,7 +26,7 @@ Pipeline steps:
     4. SAMtools -- convert SAM file to BAM, index BAM, flagstat BAM
 
     5. Quality control
-        5a. RSeQC -- calculate genomic coverage relative to a reference file, infer experiement (single- v. paired-end), read duplication
+        5a. RSeQC -- calculate genomic coverage relative to a reference file, infer experiment (single- v. paired-end), read duplication
         5b. Pileup.sh : BBMap Suite -- genomic coverage by chromosome, GC content, pos/neg reads, intron/exon ratio
 
     6. Coverage files
@@ -71,7 +71,7 @@ def helpMessage() {
         --outdir                       Specifies where to save the output from the nextflow run.
         --savefq                       Compresses and saves raw fastq reads.
         --saveTrim                     Compresses and saves trimmed fastq reads.
-        --skipBAM                      Skip saving BAM files. Only CRAM files will be saved with this option.
+        --skipBAM                      Skip saving BAM files.
         --saveAll                      Compresses and saves all fastq reads.
         --savebw                       Saves pos/neg bigwig files for UCSC genome browser.
         --savebg                       Saves concatenated pos/neg bedGraph file.
@@ -320,7 +320,7 @@ process fastQC {
     errorStrategy { task.exitStatus=0 ? 'ignore' : 'terminate' }
 
     tag "$prefix"
-    memory '8 GB'
+    memory '16 GB'
     publishDir "${params.outdir}/qc/fastqc/", mode: 'copy',
         saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
 
@@ -367,18 +367,18 @@ process bbduk {
 
         reformat.sh -Xmx20g \
                 t=16 \
-                in=${name}_1.fastq.gz \
-                in2=${name}_2.fastq.gz \
-                out=${name}_1.flip.fastq.gz \
-                out2=${name}_2.flip.fastq.gz \
+                in=${name}_R1_001.fastq.gz \
+                in2=${name}_R2_001.fastq.gz \
+                out=${name}_R1.flip.fastq.gz \
+                out2=${name}_R2.flip.fastq.gz \
                 rcomp=t
 
         bbduk.sh -Xmx20g \
                 t=16 \
-                in=${name}_1.flip.fastq.gz \
-                in2=${name}_2.flip.fastq.gz \
-                out=${name}_R1.flip.trim.fastq.gz \
-                out2=${name}_R2.flip.trim.fastq.gz \
+                in=${name}_R1.flip.fastq.gz \
+                in2=${name}_R2.flip.fastq.gz \
+                out=${name}_R1.trim.fastq.gz \
+                out2=${name}_R2.trim.fastq.gz \
                 ref=${bbmap_adapters} \
                 ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                 nullifybrokenquality=t \
@@ -394,18 +394,18 @@ process bbduk {
 
         reformat.sh -Xmx20g \
                 t=16 \
-                in=${name}_1.fastq.gz \
-                in2=${name}_2.fastq.gz \
-                out=${name}_1.flip.fastq.gz \
-                out2=${name}_2.flip.fastq.gz \
+                in=${name}_R1_001.fastq.gz \
+                in2=${name}_R2_001.fastq.gz \
+                out=${name}_R1.flip.fastq.gz \
+                out2=${name}_R2.flip.fastq.gz \
                 rcompmate=t
 
         bbduk.sh -Xmx20g \
                 t=16 \
-                in=${name}_1.flip.fastq.gz \
-                in2=${name}_2.flip.fastq.gz \
-                out=${name}_R1.flip.trim.fastq.gz \
-                out2=${name}_R2.flip.trim.fastq.gz \
+                in=${name}_R1.flip.fastq.gz \
+                in2=${name}_R2.flip.fastq.gz \
+                out=${name}_R1.trim.fastq.gz \
+                out2=${name}_R2.trim.fastq.gz \
                 ref=${bbmap_adapters} \
                 ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                 nullifybrokenquality=t \
@@ -430,7 +430,7 @@ process bbduk {
         bbduk.sh -Xmx20g \
                   t=16 \
                   in=${name}.flip.fastq.gz \
-                  out=${name}.flip.trim.fastq.gz \
+                  out=${name}.trim.fastq.gz \
                   ref=${bbmap_adapters} \
                   ktrim=r qtrim=10 k=21 mink=11 hdist=2 \
                   nullifybrokenquality=t \
@@ -447,8 +447,8 @@ process bbduk {
 
         bbduk.sh -Xmx20g \
                   t=16 \
-                  in=${name}_1.fastq.gz \
-                  in2=${name}_2.fastq.gz \
+                  in=${name}_R1_001.fastq.gz \
+                  in2=${name}_R2_001.fastq.gz \
                   out=${name}_R1.trim.fastq.gz \
                   out2=${name}_R2.trim.fastq.gz \
                   ref=${bbmap_adapters} \
@@ -477,7 +477,7 @@ process bbduk {
 
 process fastqc_trimmed {
     tag "$name"
-    memory '4 GB'
+    memory '16 GB'
     publishDir "${params.outdir}/qc/fastqc/", mode: 'copy',
         saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
 
@@ -557,8 +557,6 @@ process samtools {
         else if ((filename.indexOf("sorted.bam.bai") > 0) & !params.skipBAM)                                                                                                                         "mapped/bams/$filename"
         else if (filename.indexOf("flagstat") > 0)                    "qc/mapstats/$filename"
         else if (filename.indexOf("millionsmapped") > 0)              "qc/mapstats/$filename"
-        else if (filename.indexOf("sorted.cram") > 0)                 "mapped/crams/$filename"
-        else if (filename.indexOf("sorted.cram.crai") > 0)            "mapped/crams/$filename"
     }
 
     input:
@@ -569,8 +567,6 @@ process samtools {
     set val(name), file("${name}.sorted.bam.bai") into sorted_bam_indices_ch
     set val(name), file("${name}.flagstat") into bam_flagstat
     set val(name), file("${name}.millionsmapped") into bam_milmapped_bedgraph
-    set val(name), file("${name}.sorted.cram") into cram_out
-    set val(name), file("${name}.sorted.cram.crai") into cram_index_out
 
     script:
     if (!params.singleEnd) {
@@ -581,9 +577,6 @@ process samtools {
     samtools flagstat ${name}.sorted.bam > ${name}.flagstat
     samtools view -@ 16 -F 0x40 ${name}.sorted.bam | cut -f1 | sort | uniq | wc -l > ${name}.millionsmapped
     samtools index ${name}.sorted.bam ${name}.sorted.bam.bai
-    samtools view -@ 16 -C -T ${genome} -o ${name}.cram ${name}.sorted.bam
-    samtools sort -@ 16 -O cram ${name}.cram > ${name}.sorted.cram
-    samtools index -c ${name}.sorted.cram ${name}.sorted.cram.crai
     """
     } else {
     """
@@ -593,9 +586,6 @@ process samtools {
     samtools flagstat ${name}.sorted.bam > ${name}.flagstat
     samtools view -@ 16 -F 0x904 -c ${name}.sorted.bam > ${name}.millionsmapped
     samtools index ${name}.sorted.bam ${name}.sorted.bam.bai
-    samtools view -@ 16 -C -T ${genome} -o ${name}.cram ${name}.sorted.bam
-    samtools sort -@ 16 -O cram ${name}.cram > ${name}.sorted.cram
-    samtools index -c ${name}.sorted.cram ${name}.sorted.cram.crai
     """
     }
 }
@@ -824,7 +814,7 @@ process bedgraphs {
     bedtools genomecov \
                      -bg \
                      -strand + \
-                     -g hg38 \
+                     -g mm10 \
                      -ibam ${bam_file} \
                      -split \
                      > ${name}.pos.bedGraph
@@ -832,7 +822,7 @@ process bedgraphs {
     bedtools genomecov \
                      -bg \
                      -strand - \
-                     -g hg38 \
+                     -g mm10 \
                      -ibam ${bam_file} \
                      -split \
                      > ${name}.tmp.neg.bedGraph
