@@ -303,10 +303,15 @@ process sra_dump {
         echo ${prefix}
 
         fastq-dump --split-3 ${reads} --gzip
+
+	mv ${prefix}_1.fastq.gz ${prefix}_R1_001.fastq.gz
+	mv ${prefix}_2.fastq.gz ${prefix}_R2_001.fastq.gz
+
         """
     } else {
          """
         fastq-dump ${reads} --gzip
+
         """
     }
 
@@ -551,6 +556,7 @@ process samtools {
     tag "$name"
     memory '100 GB'
     cpus 16
+    time '8h'
     publishDir "${params.outdir}" , mode: 'copy',
     saveAs: {filename ->
              if ((filename.indexOf("sorted.bam") > 0) & !params.skipBAM)                                                                                                                             "mapped/bams/$filename"
