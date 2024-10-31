@@ -5,16 +5,16 @@
 #### Rhino-Specific Usage Requirements
 ##### Primary Run Settings
 
-This version of RNA-seq nextflow is implemented for Fred Hutch Scientific Computing server Rhino. The environment is configured on the `scratch` directory, under `/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline`. This is where you would find all the dependencies and the nextflow pipeline configurations. Please do not edit files in this directory unless you know what you are doing.
+This version of RNA-seq nextflow is implemented for Fred Hutch Scientific Computing server Rhino. The environment is configured on the `scratch` directory, under `/fh/fast/blancomelo_d/grp/scratch_backup/RNAseq_pipeline`. This is where you would find all the dependencies and the nextflow pipeline configurations. Please do not edit files in this directory unless you know what you are doing.
 
 To run the nextflow pipeline to fit your specific need, you might want to create a unique config file. You should adjust the config files based on the default `conf/rhino_grch38.config`, to ensure the proper paths are set for genome reference files and other executables. Variable names should hopefully be self-explanatory. It's generally a good idea to keep separate configuration files for samples using different reference genomes, and different organisms.
 
 ##### Setting up the environment
 
-This pipeline requires a number of packages, which are already installed within a shared directory `/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline`. You can configure the environment by running the following commands:
+This pipeline requires a number of packages, which are already installed within a shared directory `/fh/fast/blancomelo_d/grp/scratch_backup/RNAseq_pipeline`. You can configure the environment by running the following commands:
 
 ```
-WD=/fh/scratch/delete30/blancomelo_d/RNAseq_pipeline
+WD=/fh/fast/blancomelo_d/grp/scratch_backup/RNAseq_pipeline
 module load Python/3.8.2-GCCcore-9.3.0 nextflow
 alias java=${WD}/opt/jdk-18.0.2.1/bin/java
 export PATH=${WD}/opt/jdk-18.0.2.1/bin:$PATH
