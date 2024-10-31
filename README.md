@@ -5,7 +5,7 @@
 #### Rhino-Specific Usage Requirements
 ##### Primary Run Settings
 
-This version of RNA-seq nextflow is implemented for Fred Hutch Scientific Computing server Rhino. The environment is configured on the `scratch` directory, under `/fh/fast/blancomelo_d/grp/scratch_backup/RNAseq_pipeline`. This is where you would find all the dependencies and the nextflow pipeline configurations. Please do not edit files in this directory unless you know what you are doing.
+This version of RNA-seq nextflow is implemented for Fred Hutch Scientific Computing server Rhino. The environment is configured on the `fast` directory, under `/fh/fast/blancomelo_d/grp/scratch_backup/RNAseq_pipeline`. This is a new directory path that was originally migrated from `scratch`. This is where you would find all the dependencies and the nextflow pipeline configurations. Please do not edit files in this directory unless you know what you are doing.
 
 To run the nextflow pipeline to fit your specific need, you might want to create a unique config file. You should adjust the config files based on the default `conf/rhino_grch38.config`, to ensure the proper paths are set for genome reference files and other executables. Variable names should hopefully be self-explanatory. It's generally a good idea to keep separate configuration files for samples using different reference genomes, and different organisms.
 
